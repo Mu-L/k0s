@@ -72,6 +72,13 @@ decision] to replace rather than merge individual plugin configuration sections
 from imported configuration files. However, this behavior [may][containerd#7347]
 [change][containerd#9982] in future releases of containerd.
 
+Starting with k0s 1.36, k0s uses containerd 2 which modifies the configuration
+and all drop-in files must use the containerd v3 configuration format. Either
+omit the `version` field entirely or set it to `version = 3`. Any file that sets
+`version = 2` or that references the legacy `io.containerd.grpc.v1.cri` plugin
+path will cause k0s to exit with an error on startup.  If you have drop-in files
+from previous versions, update them before restarting k0s.
+
 Please note, that in order for drop-ins in `/etc/k0s/containerd.d` to take effect on running configuration, `/etc/k0s/containerd.toml` needs to be k0s managed.
 
 If you change the first magic line (`# k0s_managed=true`) in the `/etc/k0s/containerd.toml` (by accident or on purpose), it automatically becomes "not k0s managed". To make it "k0s managed" again, remove `/etc/k0s/containerd.toml` and restart k0s service on the node, it'll be recreated by k0s.
@@ -128,7 +135,7 @@ capabilities = ["pull", "resolve"]
 For more details on how to configure registry hosts, please refer to the
 [official containerd configuration][containerd-hosts].
 
-[containerd-hosts]: https://github.com/containerd/containerd/blob/release/1.7/docs/hosts.md
+[containerd-hosts]: https://github.com/containerd/containerd/blob/release/2.2/docs/hosts.md
 
 #### Using gVisor
 
