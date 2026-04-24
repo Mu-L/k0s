@@ -73,7 +73,9 @@ smoketests := \
 	check-network-conformance-kuberouter-ipv6-nft \
 	check-network-conformance-kuberouter-nft \
 	check-nllb \
+	check-nllb-traefik \
 	check-nllb-ipv6 \
+	check-nllb-traefik-ipv6 \
 	check-noderole \
 	check-noderole-no-taints \
 	check-noderole-single \

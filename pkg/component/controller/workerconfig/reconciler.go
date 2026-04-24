@@ -44,6 +44,8 @@ import (
 
 type resources = []*unstructured.Unstructured
 
+type updateFunc = func(*snapshot) chan<- error
+
 // Reconciler maintains ConfigMaps that hold configuration to be
 // used on k0s worker nodes, depending on their selected worker profile.
 type Reconciler struct {
@@ -136,8 +138,6 @@ func (r *Reconciler) Init(context.Context) error {
 
 	return nil
 }
-
-type updateFunc = func(*snapshot) chan<- error
 
 // Start implements [manager.Component].
 func (r *Reconciler) Start(context.Context) error {
@@ -611,10 +611,15 @@ func (r *Reconciler) buildProfile(snapshot *snapshot) *workerconfig.Profile {
 		PrimaryAddressFamily: snapshot.primaryAddressFamily,
 	}
 
-	if workerProfile.NodeLocalLoadBalancing != nil &&
-		workerProfile.NodeLocalLoadBalancing.EnvoyProxy != nil &&
-		workerProfile.NodeLocalLoadBalancing.EnvoyProxy.ImagePullPolicy == "" {
-		workerProfile.NodeLocalLoadBalancing.EnvoyProxy.ImagePullPolicy = snapshot.defaultImagePullPolicy
+	if workerProfile.NodeLocalLoadBalancing != nil {
+		if workerProfile.NodeLocalLoadBalancing.EnvoyProxy != nil &&
+			workerProfile.NodeLocalLoadBalancing.EnvoyProxy.ImagePullPolicy == "" {
+			workerProfile.NodeLocalLoadBalancing.EnvoyProxy.ImagePullPolicy = snapshot.defaultImagePullPolicy
+		}
+		if workerProfile.NodeLocalLoadBalancing.Traefik != nil &&
+			workerProfile.NodeLocalLoadBalancing.Traefik.ImagePullPolicy == "" {
+			workerProfile.NodeLocalLoadBalancing.Traefik.ImagePullPolicy = snapshot.defaultImagePullPolicy
+		}
 	}
 
 	return workerProfile
