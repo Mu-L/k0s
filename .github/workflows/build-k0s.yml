@@ -20,9 +20,11 @@ jobs:
     name: ${{ inputs.target-os }}-${{ inputs.target-arch }}
     runs-on: >-
       ${{
-           inputs.target-arch == 'arm'   && fromJSON('["self-hosted", "linux", "arm"]')
-        || inputs.target-arch == 'arm64' && 'ubuntu-24.04-arm'
-        || 'ubuntu-24.04'
+        case(
+          inputs.target-arch == 'arm', fromJSON('["self-hosted", "linux", "arm"]'),
+          inputs.target-arch == 'arm64', 'ubuntu-24.04-arm',
+          'ubuntu-24.04'
+        )
       }}
 
     env:
