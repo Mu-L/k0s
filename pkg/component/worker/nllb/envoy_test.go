@@ -22,13 +22,12 @@ import (
 
 func TestWriteEnvoyConfigFiles(t *testing.T) {
 	for _, test := range []struct {
-		name     string
-		expected int
-		servers  []string
+		name    string
+		servers []string
 	}{
-		{"empty", 0, []string{}},
-		{"one", 1, []string{"foo:16"}},
-		{"two", 2, []string{"foo:16", "bar:17"}},
+		{"empty", []string{}},
+		{"one", []string{"foo:16"}},
+		{"two", []string{"foo:16", "bar:17"}},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			dir := t.TempDir()
