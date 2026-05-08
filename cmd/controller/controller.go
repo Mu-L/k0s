@@ -256,10 +256,7 @@ func (c *command) start(ctx context.Context, flags *config.ControllerOptions, de
 	// Assume a single active controller during startup
 	numActiveControllers := value.NewLatest[uint](1)
 
-	nodeComponents.Add(ctx, &iptables.Component{
-		IPTablesMode: c.IPTablesMode,
-		BinDir:       c.K0sVars.BinDir,
-	})
+	workerInterface := embeddingController{opts: flags}
 
 	enableK0sEndpointReconciler := nodeConfig.Spec.API.ExternalAddress != "" &&
 		!slices.Contains(flags.DisableComponents, constant.APIEndpointReconcilerComponentName)
@@ -273,6 +270,12 @@ func (c *command) start(ctx context.Context, flags *config.ControllerOptions, de
 			enableK0sEndpointReconciler = false
 			logrus.Info("Disabling k0s endpoint reconciler in favor of control plane load balancing")
 		}
+
+		workerInterface.usesIPTables = true
+		nodeComponents.Add(ctx, &iptables.Component{
+			IPTablesMode: c.IPTablesMode,
+			BinDir:       c.K0sVars.BinDir,
+		})
 
 		nodeComponents.Add(ctx, &cplb.Keepalived{
 			K0sVars:         c.K0sVars,
@@ -668,7 +671,7 @@ func (c *command) start(ctx context.Context, flags *config.ControllerOptions, de
 	perfTimer.Output()
 
 	if controllerMode.WorkloadsEnabled() {
-		return c.startWorker(ctx, nodeName, kubeletExtraArgs, flags)
+		return c.startWorker(ctx, nodeName, kubeletExtraArgs, &workerInterface)
 	}
 
 	if supervised := supervised.Get(ctx); supervised != nil {
@@ -683,23 +686,31 @@ func (c *command) start(ctx context.Context, flags *config.ControllerOptions, de
 	return nil
 }
 
-func (c *command) startWorker(ctx context.Context, nodeName apitypes.NodeName, kubeletExtraArgs stringmap.StringMap, opts *config.ControllerOptions) error {
+func (c *command) startWorker(ctx context.Context, nodeName apitypes.NodeName, kubeletExtraArgs stringmap.StringMap, e *embeddingController) error {
 	// Cast and make a copy of the controller command so it can use the same
 	// opts to start the worker. Needs to be a copy so the original token and
 	// possibly other args won't get messed up.
 	wc := workercmd.Command(*(*config.CLIOptions)(c))
 	wc.Labels[constant.K0SNodeRoleLabel] = "control-plane"
-	if opts.Mode() == config.ControllerPlusWorkerMode && !opts.NoTaints {
+	if e.opts.Mode() == config.ControllerPlusWorkerMode && !e.opts.NoTaints {
 		wc.Taints = append(wc.Taints, constants.ControlPlaneTaint.ToString())
 	}
-	return wc.Start(ctx, nodeName, kubeletExtraArgs, kubernetes.KubeconfigFromFile(c.K0sVars.AdminKubeConfigPath), (*embeddingController)(opts))
+	return wc.Start(ctx, nodeName, kubeletExtraArgs, kubernetes.KubeconfigFromFile(c.K0sVars.AdminKubeConfigPath), e)
 }
 
-type embeddingController config.ControllerOptions
+type embeddingController struct {
+	opts         *config.ControllerOptions
+	usesIPTables bool
+}
 
 // IsSingleNode implements [workercmd.EmbeddingController].
 func (c *embeddingController) IsSingleNode() bool {
-	return (*config.ControllerOptions)(c).Mode() == config.SingleNodeMode
+	return c.opts.Mode() == config.SingleNodeMode
+}
+
+// UsesIPTables implements [worker.EmbeddingController].
+func (c *embeddingController) UsesIPTables() bool {
+	return c.usesIPTables
 }
 
 // If we've got an etcd data directory in place for embedded etcd, or a ca for
