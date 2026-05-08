@@ -140,10 +140,6 @@ func (e *Etcd) syncEtcdConfig(ctx context.Context, etcdRequest v1beta1.EtcdReque
 
 // Run runs etcd if external cluster is not configured
 func (e *Etcd) Start(ctx context.Context) error {
-	if e.Config.IsExternalClusterUsed() {
-		return nil
-	}
-
 	etcdCaCert := filepath.Join(e.K0sVars.EtcdCertDir, "ca.crt")
 	etcdCaCertKey := filepath.Join(e.K0sVars.EtcdCertDir, "ca.key")
 	etcdServerCert := filepath.Join(e.K0sVars.EtcdCertDir, "server.crt")

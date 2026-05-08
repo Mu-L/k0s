@@ -236,18 +236,23 @@ func (c *command) start(ctx context.Context, flags *config.ControllerOptions, de
 			K0sVars: c.K0sVars,
 		}
 	case v1beta1.EtcdStorageType:
-		storageBackend = &controller.Etcd{
-			CertManager: certificateManager,
-			Config:      nodeConfig.Spec.Storage.Etcd,
-			JoinClient:  joinClient,
-			K0sVars:     c.K0sVars,
-			LogLevel:    c.LogLevels.Etcd,
+		config := nodeConfig.Spec.Storage.Etcd
+		if !config.IsExternalClusterUsed() {
+			storageBackend = &controller.Etcd{
+				CertManager: certificateManager,
+				Config:      config,
+				JoinClient:  joinClient,
+				K0sVars:     c.K0sVars,
+				LogLevel:    c.LogLevels.Etcd,
+			}
 		}
 	default:
 		return fmt.Errorf("invalid storage type: %s", nodeConfig.Spec.Storage.Type)
 	}
-	logrus.Infof("using storage backend %s", nodeConfig.Spec.Storage.Type)
-	nodeComponents.Add(ctx, storageBackend)
+	if storageBackend != nil {
+		logrus.Infof("using storage backend %s", nodeConfig.Spec.Storage.Type)
+		nodeComponents.Add(ctx, storageBackend)
+	}
 
 	controllerMode := flags.Mode()
 	// Will the cluster support multiple controllers, or just a single one?
@@ -300,7 +305,6 @@ func (c *command) start(ctx context.Context, flags *config.ControllerOptions, de
 		ClusterConfig:      nodeConfig,
 		K0sVars:            c.K0sVars,
 		LogLevel:           c.LogLevels.KubeAPIServer,
-		Storage:            storageBackend,
 		EnableKonnectivity: enableKonnectivity,
 
 		// If k0s reconciles the kubernetes endpoint, the API server shouldn't do it.

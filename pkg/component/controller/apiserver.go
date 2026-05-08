@@ -35,7 +35,6 @@ type APIServer struct {
 	ClusterConfig             *v1beta1.ClusterConfig
 	K0sVars                   *config.CfgVars
 	LogLevel                  string
-	Storage                   manager.Component
 	EnableKonnectivity        bool
 	DisableEndpointReconciler bool
 
