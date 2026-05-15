@@ -46,6 +46,7 @@ type Command config.CLIOptions
 // Interface between an embedded worker and its embedding controller.
 type EmbeddingController interface {
 	IsSingleNode() bool
+	UsesIPTables() bool
 }
 
 func NewWorkerCmd() *cobra.Command {
@@ -266,7 +267,7 @@ func (c *Command) Start(ctx context.Context, nodeName apitypes.NodeName, kubelet
 		))
 	}
 
-	if controller == nil && runtime.GOOS == "linux" {
+	if runtime.GOOS == "linux" && (controller == nil || !controller.UsesIPTables()) {
 		componentManager.Add(ctx, &iptables.Component{
 			IPTablesMode: c.IPTablesMode,
 			BinDir:       c.K0sVars.BinDir,
